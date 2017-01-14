@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="cordova-plugin-rich-camera"
+        version="0.0.1">
+    <name>cordova-plugin-rich-camera</name>
+    <description>
+    </description>
+    <license>Apache 2.0</license>
+    <keywords>
+
+    </keywords>
+    <repo>https://github.com/berserker001/cordova-plugin-rich-camera.git</repo>
+    <issue>https://github.com/berserker001/cordova-plugin-rich-camera/issues</issue>
+
+    <js-module src="www/RichCamera.js" name="RichCamera">
+        <clobbers target="cordova.plugins.richCamera"/>
+    </js-module>
+
+    <!-- android -->
+    <platform name="android">
+
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="RichCamera">
+                <param name="android-package" value="com.evreturn.RichCamera"/>
+                <param name="onload" value="true"/>
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-feature android:name="android.hardware.camera"/>
+            <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+            <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
+
+            <uses-permission android:name="android.permission.CAMERA"/>
+            <uses-permission android:name="android.permission.FLASHLIGHT"/>
+
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+            <uses-permission android:name="android.permission.RECORD_VIDEO" />
+            <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <activity android:name="com.evreturn.CameraActivity" android:screenOrientation="portrait"
+                      android:theme="@style/RichCameraTheme"/>
+        </config-file>
+
+        <source-file src="src/android/com/evreturn/RichCamera.java" target-dir="src/com/evreturn"/>
+        <source-file src="src/android/com/evreturn/CameraActivity.java" target-dir="src/com/evreturn"/>
+        <source-file src="src/android/com/evreturn/Preview.java" target-dir="src/com/evreturn"/>
+        <source-file src="src/android/com/evreturn/CameraHelper.java" target-dir="src/com/evreturn"/>
+
+        <source-file src="src/android/com/evreturn/camera_activity.xml" target-dir="res/layout"/>
+        <source-file src="src/android/com/evreturn/camera_theme.xml" target-dir="res/values"/>
+
+    </platform>
+
+    <!-- ios -->
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="RichCamera">
+                <param name="ios-package" value="RichCamera" onload="true"/>
+            </feature>
+        </config-file>
+
+        <header-file src="src/ios/CameraPreview.h"/>
+        <source-file src="src/ios/CameraPreview.m"/>
+
+        <header-file src="src/ios/CameraSessionManager.h"/>
+        <source-file src="src/ios/CameraSessionManager.m"/>
+
+        <header-file src="src/ios/CameraRenderController.h"/>
+        <source-file src="src/ios/CameraRenderController.m"/>
+
+        <framework src="ImageIO.framework" weak="true"/>
+        <framework src="MobileCoreServices.framework"/>
+        <framework src="CoreLocation.framework"/>
+        <framework src="CoreGraphics.framework"/>
+        <framework src="AssetsLibrary.framework"/>
+        <framework src="CoreGraphics.framework"/>
+        <framework src="CoreImage.framework"/>
+        <framework src="OpenGLES.framework"/>
+        <framework src="GLKit.framework"/>
+        <framework src="CoreVideo.framework"/>
+        <framework src="MediaPlayer.framework" weak="true" />
+
+    </platform>
+
+</plugin>
