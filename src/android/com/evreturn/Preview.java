@@ -37,6 +37,10 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
     int displayOrientation;
     SurfaceTexture mSurfaceTexture;
 
+    boolean inVideoCapturing = false;
+    boolean supportedFocusMode_video = false;
+    boolean supportedFocusMode_picture = false;
+
     Preview(Context context) {
         super(context);
 
@@ -69,14 +73,25 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
             List<String> mFocusModes = mCamera.getParameters().getSupportedFocusModes();
 
             Camera.Parameters params = mCamera.getParameters();
-//            if (mFocusModes.contains("continuous-picture")) {
-//                params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-//            } else
-//            if (mFocusModes.contains("continuous-video")) {
-//                params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-//            } else
-            if (mFocusModes.contains("auto")) {
-                params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+
+            if (mFocusModes.contains("continuous-picture")) {
+                this.supportedFocusMode_picture = true;
+            }
+
+            if (mFocusModes.contains("continuous-video")) {
+                this.supportedFocusMode_video = true;
+            }
+
+            if (this.mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT)
+                params.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
+            else if (this.mCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
+
+                if (this.supportedFocusMode_picture)
+                    params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                else {
+                    params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                }
+
             }
 
             mCamera.setParameters(params);
@@ -134,9 +149,13 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
         this.setCamera(camera, cameraId);
 
         try {
+
             mCamera.setPreviewTexture(this.mSurfaceTexture);
+
             Camera.Parameters parameters = camera.getParameters();
+
             parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+
             camera.setParameters(parameters);
         } catch (IOException exception) {
             Log.e(TAG, exception.getMessage());
@@ -305,7 +324,10 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
         mRecordAudio = recordAudio;
     }
 
-    public void startVideoCapture(String filePath) throws Exception {
+    public void startVideoCapture() throws Exception {
+
+        String filePath = RichCamera.makeVideoFilePath();
+
         if (this.mRecordingState == Preview.RecordingState.STARTED) {
             Log.w(TAG, "Already Recording");
             return;
@@ -333,6 +355,12 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
 
         // Set camera parameters
         Camera.Parameters cameraParameters = mCamera.getParameters();
+
+        if (this.supportedFocusMode_video) {
+            cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+            mCamera.setParameters(cameraParameters);
+        }
+
         mCamera.stopPreview(); //Apparently helps with freezing issue on some Samsung devices.
         mCamera.unlock();
 
@@ -343,6 +371,7 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
             CamcorderProfile profile = CamcorderProfile.get(mCameraId, CamcorderProfile.QUALITY_480P);
 
             mRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+
             if (mRecordAudio) {
                 // With audio
                 mRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
@@ -397,6 +426,8 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
 
         //Only release recorder
         this.releaseRecorder();
+
+        this.resetCameraFocusMode();
 
         return this.mFilePath;
     }
@@ -469,6 +500,20 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
 
     }
 
+    private void resetCameraFocusMode() {
+
+        Camera.Parameters params = mCamera.getParameters();
+
+        if (this.supportedFocusMode_picture)
+            params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        else {
+            params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+        }
+
+        mCamera.setParameters(params);
+
+    }
+
     //endregion
 
     //region Surface Texture Callback
@@ -496,7 +541,7 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
 
         if (mStartWhenInitialized) {
             try {
-                startVideoCapture(this.mFilePath);
+                startVideoCapture();
             } catch (Exception ex) {
                 Log.e(TAG, "Error start camera", ex);
             }
@@ -514,6 +559,8 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
 
     @Override
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+
     }
 
     //endregion

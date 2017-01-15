@@ -294,10 +294,6 @@ public class CameraActivity extends Fragment {
         return mCamera;
     }
 
-    public int getCameraId() {
-        return this.defaultCameraId;
-    }
-
     public void switchCamera() {
         // check for availability of multiple cameras
         if (numberOfCameras == 1) {
@@ -328,38 +324,6 @@ public class CameraActivity extends Fragment {
         CameraActivity.CAMERA_ID = nextCameraId;
 
         //VideoOverlay.clear();
-
-        Log.d(TAG, "cameraCurrentlyLocked new: " + cameraCurrentlyLocked);
-
-        // startVideoCapture the preview
-        mCamera.startPreview();
-    }
-
-    public void forceRender() {
-        // check for availability of multiple cameras
-        if (numberOfCameras == 1) {
-            //There is only one camera available
-        }
-        Log.d(TAG, "numberOfCameras: " + numberOfCameras);
-
-        // OK, we have multiple cameras.
-        // Release this camera -> cameraCurrentlyLocked
-        if (mCamera != null) {
-            mCamera.stopPreview();
-            mPreview.setCamera(null, -1);
-            mCamera.release();
-            mCamera = null;
-        }
-
-        // Acquire the next camera and request Preview to reconfigure
-        // parameters.
-
-        int nextCameraId = (cameraCurrentlyLocked) % numberOfCameras;
-
-        mCamera = Camera.open(nextCameraId);
-        cameraCurrentlyLocked = nextCameraId;
-
-        mPreview.switchCamera(mCamera, cameraCurrentlyLocked);
 
         Log.d(TAG, "cameraCurrentlyLocked new: " + cameraCurrentlyLocked);
 
@@ -467,8 +431,10 @@ public class CameraActivity extends Fragment {
 
                                             _width = _height;
 
-
-                                            _x = _offset - (squareModeOffset > 0 ? squareModeOffset : defaultOffset);
+                                            if (CAMERA_ID == Camera.CameraInfo.CAMERA_FACING_FRONT)
+                                                _x = _offset + (squareModeOffset > 0 ? squareModeOffset : defaultOffset);
+                                            else
+                                                _x = _offset - (squareModeOffset > 0 ? squareModeOffset : defaultOffset);
 
                                         } else if (_height > _width) {
 
@@ -512,18 +478,7 @@ public class CameraActivity extends Fragment {
             public void run() {
 
                 try {
-                    //final File picFile = storeImage(picture, "_preview");
-                    final File originalPictureFile = storeImage(originalPicture, "");
-
-//                    ContentValues values = new ContentValues();
-//                    values.put(MediaStore.Images.Media.DATA, originalPictureFile.getAbsolutePath());
-//                    values.put(MediaStore.Images.Media.DISPLAY_NAME, originalPictureFile.getName());
-//
-//                    getActivity()
-//                            .getApplicationContext()
-//                            .getContentResolver()
-//                            .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-
+                    final File originalPictureFile = storeImage(originalPicture);
 
                     MediaScanner mediaScanner = new MediaScanner(getActivity().getApplicationContext());
                     String[] filePaths = new String[]{originalPictureFile.getAbsolutePath()};
@@ -553,32 +508,8 @@ public class CameraActivity extends Fragment {
         }.start();
     }
 
-    private File getOutputMediaFile(String suffix) {
-
-        String destinationPath = "";
-
-        File mediaStorageDir = getActivity().getApplicationContext().getFilesDir();
-
-        if (mediaStorageDir.exists() || mediaStorageDir.mkdirs()) {
-            destinationPath = mediaStorageDir.getPath();
-        }
-
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString() + "/" + getActivity().getApplicationContext().getPackageName() + "/");
-
-        if (storageDir.exists() || storageDir.mkdirs()) {
-            destinationPath = storageDir.getPath();
-        }
-
-        // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyy_dd_MM_HHmm_ss").format(new Date());
-        File mediaFile;
-        String mImageName = timeStamp + suffix + ".png";
-        mediaFile = new File(destinationPath + File.separator + mImageName);
-        return mediaFile;
-    }
-
-    private File storeImage(Bitmap image, String suffix) {
-        File pictureFile = getOutputMediaFile(suffix);
+    private File storeImage(Bitmap image) {
+        File pictureFile = new File(RichCamera.makePhotoFilePath());
         if (pictureFile != null) {
             try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);

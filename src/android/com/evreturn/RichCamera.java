@@ -68,14 +68,14 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
     private final String startVideoCaptureAction = "startVideoCapture";
     private final String stopVideoCaptureAction = "stopVideoCapture";
 
-    private final String requirePermissionAction = "requirePermission";
+    private final String requestPermissionAction = "requestPermission";
 
     //endregion
 
     public static final int START_CAMERA_SEC = 0;
 
     public CallbackContext callbackContext;
-    private CallbackContext cc_requirePermission;
+    private CallbackContext cc_requestPermission;
 
     private CameraActivity fragment;
     private CallbackContext takePictureCallbackContext;
@@ -87,6 +87,7 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
     public static String PHOTO_FOLDER;
 
     public static final String VIDEO_EXTENSION = ".mp4";
+    public static final String PHOTO_EXTENSION = ".png";
 
     private static final int START_REQUEST_CODE = 0;
 
@@ -124,8 +125,8 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
             return startVideoCapture(args, callbackContext);
         } else if (stopVideoCaptureAction.equals(action)) {
             return stopVideoCapture();
-        } else if (requirePermissionAction.equals(action)) {
-            return requirePermission(args, callbackContext);
+        } else if (requestPermissionAction.equals(action)) {
+            return requestPermission(args, callbackContext);
         }
 
         return false;
@@ -135,14 +136,14 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
                                           int[] grantResults) throws JSONException {
         for (int r : grantResults) {
             if (r == PackageManager.PERMISSION_DENIED) {
-                if (this.cc_requirePermission != null)
-                    this.cc_requirePermission.error(0);
+                if (this.cc_requestPermission != null)
+                    this.cc_requestPermission.error(0);
                 return;
             }
         }
 
-        if (this.cc_requirePermission != null)
-            this.cc_requirePermission.success(1);
+        if (this.cc_requestPermission != null)
+            this.cc_requestPermission.success(1);
 
         this.initStorageFolder();
 
@@ -515,29 +516,23 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
         return true;
     }
 
-    private boolean requirePermission(JSONArray args, CallbackContext callbackContext) {
+    private boolean requestPermission(JSONArray args, CallbackContext callbackContext) {
 
-        this.cc_requirePermission = callbackContext;
+        this.cc_requestPermission = callbackContext;
 
-        Log.d(TAG, requirePermissionAction);
-
-        String permission;
-
+        Log.d(TAG, requestPermissionAction);
         List<String> hasNotPermissions = new ArrayList<String>();
 
-        for (int i = 0; i < permissions.length; i++) {
 
-            permission = permissions[i];
-
+        for (String permission : permissions) {
             if (!cordova.hasPermission(permission))
                 hasNotPermissions.add(permission);
-
         }
 
         if (hasNotPermissions.size() > 0) {
             cordova.requestPermissions(this, START_REQUEST_CODE, hasNotPermissions.toArray(new String[0]));
         } else
-            cc_requirePermission.success(1);
+            cc_requestPermission.success(1);
 
         return true;
     }
@@ -556,7 +551,7 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
                     @Override
                     public void run() {
                         try {
-                            fragment.PREVIEW.startVideoCapture(makeVideoFileName());
+                            fragment.PREVIEW.startVideoCapture();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -574,23 +569,17 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
 
     private boolean stopVideoCapture() {
 
-        try {
-
-            cordova.getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
+        cordova.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (fragment != null && fragment.PREVIEW != null)
                         fragment.PREVIEW.stopVideoCapture();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            });
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+            }
+        });
 
         return true;
     }
@@ -599,30 +588,58 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
 
     //region Supplement
 
-    private String makeVideoFileName() {
-        return VIDEO_FOLDER + new SimpleDateFormat("yyyy_dd_MM_HHmm_ss").format(new Date()) + VIDEO_EXTENSION;
+    public static String makeVideoFilePath() {
+        return VIDEO_FOLDER + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + VIDEO_EXTENSION;
+    }
+
+    public static String makePhotoFilePath() {
+        return PHOTO_FOLDER + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + PHOTO_EXTENSION;
     }
 
     private void initStorageFolder() {
 
         //region Init Video Folder Path
 
+        String filePath = "";
+        File storageDir;
+
         //Default is in Application-Inner-Resources Folder
-        VIDEO_FOLDER = cordova.getActivity().getFilesDir().toString() + "/";
+        filePath = cordova.getActivity().getFilesDir().toString() + "/Video/";
 
         if (cordova.hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
 
             //Try to get folder path from ExternalStorage
-            String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).toString() + "/" + cordova.getActivity().getApplicationContext().getPackageName() + "/";
-
-            File storageDir = new File(path);
-
-            //If the specified folder is exists or created successed.
-            if (storageDir.exists() || storageDir.mkdirs()) {
-                VIDEO_FOLDER = path;
-            }
+            filePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).toString() + "/" + cordova.getActivity().getApplicationContext().getPackageName() + "/";
 
         }
+
+        storageDir = new File(filePath);
+
+        //If the specified folder is exists or created successed.
+        if (storageDir.exists() || storageDir.mkdirs()) {
+            VIDEO_FOLDER = filePath;
+        }
+
+        //endregion
+
+        //region Init Photo Folder Path
+
+        filePath = cordova.getActivity().getFilesDir().toString() + "/Photo/";
+
+        if (cordova.hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+            //Try to get folder path from ExternalStorage
+            filePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString() + "/" + cordova.getActivity().getApplicationContext().getPackageName() + "/";
+
+        }
+
+        storageDir = new File(filePath);
+
+        //If the specified folder is exists or created successed.
+        if (storageDir.exists() || storageDir.mkdirs()) {
+            PHOTO_FOLDER = filePath;
+        }
+
 
         //endregion
 
