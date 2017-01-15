@@ -82,7 +82,7 @@ RichCamera.requestPermission = function (fn_success, fn_error) {
     exec(fn_success, fn_error, PLUGIN_NAME, "requestPermission", []);
 };
 
-RichCamera.startVideoCapture = function (fn_success, fn_error, options) {
+RichCamera.startVideoCapture = function (options, fn_success, fn_error) {
 
     options = options || {'enabledRecordAudio': true};
 
@@ -90,8 +90,8 @@ RichCamera.startVideoCapture = function (fn_success, fn_error, options) {
 
 };
 
-RichCamera.stopVideoCapture = function (fn_success, fn_error) {
-    exec(fn_success, fn_error, PLUGIN_NAME, "stopVideoCapture", []);
+RichCamera.stopVideoCapture = function (deleteFile, fn_success, fn_error) {
+    exec(fn_success, fn_error, PLUGIN_NAME, "stopVideoCapture", [!!deleteFile]);
 };
 
 module.exports = RichCamera;

@@ -20,6 +20,7 @@ import android.widget.RelativeLayout;
 import org.apache.cordova.LOG;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -406,7 +407,7 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
         }
     }
 
-    public String stopVideoCapture() throws IOException {
+    public String stopVideoCapture(boolean deleteFile) throws IOException {
         Log.d(TAG, "stopRecording called");
 
         if (mRecorder != null) {
@@ -414,6 +415,12 @@ public class Preview extends RelativeLayout implements TextureView.SurfaceTextur
             mRecorder = null;
             try {
                 tempRecorder.stop();
+
+                if (deleteFile) {
+                    File videoFile = new File(this.mFilePath);
+                    videoFile.delete();
+                }
+
             } catch (Exception e) {
                 //This can occur when the camera failed to start and then stop is called
                 Log.e(TAG, "Could not stop recording.", e);

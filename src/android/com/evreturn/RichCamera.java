@@ -124,7 +124,7 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
         } else if (startVideoCaptureAction.equals(action)) {
             return startVideoCapture(args, callbackContext);
         } else if (stopVideoCaptureAction.equals(action)) {
-            return stopVideoCapture();
+            return stopVideoCapture(args.getBoolean(0), callbackContext);
         } else if (requestPermissionAction.equals(action)) {
             return requestPermission(args, callbackContext);
         }
@@ -163,16 +163,16 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
     @Override
     public void onPause(boolean multitasking) {
 
-        this.stopVideoCapture();
+        this.stopVideoCapture(true, null);
 
         super.onPause(multitasking);
+
     }
 
     @Override
     public void onDestroy() {
 
-        this.stopVideoCapture();
-
+        this.stopVideoCapture(true, null);
 
         super.onDestroy();
     }
@@ -537,7 +537,7 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
         return true;
     }
 
-    private boolean startVideoCapture(final JSONArray args, CallbackContext callbackContext) {
+    private boolean startVideoCapture(final JSONArray args, final CallbackContext callbackContext) {
 
         try {
 
@@ -552,8 +552,10 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
                     public void run() {
                         try {
                             fragment.PREVIEW.startVideoCapture();
+                            callbackContext.success(1);
                         } catch (Exception e) {
                             e.printStackTrace();
+                            callbackContext.error(0);
                         }
                     }
                 });
@@ -567,16 +569,33 @@ public class RichCamera extends CordovaPlugin implements CameraActivity.RichCame
         return true;
     }
 
-    private boolean stopVideoCapture() {
+    private boolean stopVideoCapture(final boolean deleteFile, final CallbackContext callbackContext) {
 
         cordova.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    if (fragment != null && fragment.PREVIEW != null)
-                        fragment.PREVIEW.stopVideoCapture();
+
+                    if (fragment != null && fragment.PREVIEW != null) {
+
+                        String videoFilePath = fragment.PREVIEW.stopVideoCapture(deleteFile);
+
+                        if (callbackContext != null)
+                            callbackContext.success(deleteFile ? "2" : videoFilePath);
+
+                    } else {
+
+                        if (callbackContext != null)
+                            callbackContext.error(0);
+
+                    }
+
                 } catch (Exception e) {
                     e.printStackTrace();
+
+                    if (callbackContext != null)
+                        callbackContext.error(0);
+
                 }
             }
         });
